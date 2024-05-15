@@ -16,3 +16,11 @@ export const ImgBox = styled.img`
     width:200px;
     height:200px;
 `
+
+export const Game = styled.div
+`font-size:35px;
+font-weight:bold;`
+
+export const Round = styled.div
+`font-size:30px;
+font-weight:bold;`
