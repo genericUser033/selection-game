@@ -15,7 +15,11 @@ import p13 from "././asset/images/HAF-Banh-Mi-Phuong.webp";
 import p14 from "././asset/images/HAF-Cao-Lau-Dish.webp";
 import p15 from "././asset/images/Hue-Banh-Beo_.webp";
 import p16 from "././asset/images/Hue-com-hen.webp";
-import {ImgBox, ImgContainer} from "./styled";
+import {Game, GameContainer, ImgBox, ImgContainer, Round} from "./styled";
+import {useContext} from "react";
+import {RankingContext} from "./App";
+import {useNavigate} from "react-router-dom";
+import {logDOM} from "@testing-library/react";
 
 const candidates = [
     {
@@ -105,43 +109,101 @@ const candidates = [
 export const Main = () => {
     const [nextRoundCandidates, setNextRoundCandidates] = useState(candidates);
     const [game, setGame] = useState(candidates?.length);
-    const [round, setRound] = useState(0);
-    const [winners, setWinners] = useState(null);
+    const [round, setRound] = useState(1);
+    const [winners, setWinners] = useState([]);//for each round
+    const {value, setValue} = useContext(RankingContext);
+    const navigator = useNavigate();
+
+    // let userInfo = useContext(UserContext);
+    // userInfo.userId = "id";
+    // console.log("id ", userInfo.userId);
 
     useEffect(() => {
-        setNextRoundCandidates(candidates
+        setNextRoundCandidates(
+            candidates
             .map((c) => {
-                return { key: c.key, name: c.name, src: c.src, order: Math.random() };
+                return { id: c.id, name: c.name, src: c.src, order: Math.random() };
             })
-            .sort((l, r) => {
-                return l.order - r.order;
+            .sort((a, b) => {
+                return a.order - b.order;
             })
         );
-    }, []);
+    }, []);// this will just be called once
 
     const handleClick = (e) => {
+        console.log(e)
         setRound(round + 1);
-        setWinners(prev => [...prev, e]);
+        setWinners(prev => [...prev, e]);//[[a,b,c],e] => a,b,c,e => add the new selected to the winners list
         setNextRoundCandidates((prev) => {
-            const temp = prev.splice(0, 2)
-            return prev.filter((el, i) => el.key !== temp.key)
+            const temp = prev.splice(0, 2)//delete 2 elements starting from the index 0, just keep the one that haven't join yet
+            return prev.filter((el, i) => el.id !== temp.id)//id=id, filter two joined candidate
         });
     }
-    return (
-        nextRoundCandidates.map((e, i) => {
-            if(i>1) {
-                return;
-            };
-            return (
-                <ImgContainer onClick={(e) => {
-                    handleClick(e);
-                }}>
-                    <ImgBox src={e.src} />
-                    {e.name}
-                </ImgContainer>
 
+    const rank = () => {
+        if (value && value.length > 0) {
+            setValue((prev) => {
+                const temp = prev.map((e, i) =>
+                    nextRoundCandidates[0].id === e.id ?
+                        { id: e.id, name: e.name, src: e.src, score: e.score + 1 }
+                        : { id: e.id, name: e.name, src: e.src, score: e.score }
+                )
+                return temp;
+            })
+        } else {
+            console.log("here", winners)
+            const temp = candidates.map((e, i) =>
+                nextRoundCandidates[0].id === e.id ?
+                    { id: e.id, name: e.name, src: e.src, score: 1 }
+                    : { id: e.id, name: e.name, src: e.src, score: 0 }
             )
-        })
+            setValue(temp)
+        }
+        navigator("/ranking");
+    }
+
+    useEffect(() => {
+        if (game === 1) {
+
+            console.log("last game!");
+            rank();
+            return;
+        }
+        if (nextRoundCandidates.length === 0) {
+            setRound(1);
+            setWinners([]);
+            setNextRoundCandidates(winners);
+            setGame((prev) => prev / 2)
+        }
+    }, [round]);// this will be called whenever round changes
+
+    return (
+        <>
+            {
+                game===1 ? <Game>Win</Game> : game===2 ? <Game>Final Round</Game> : <Game>{game}</Game>
+            }
+            {
+                game >= 2 && <Round>{round}{" Round"}</Round>
+            }
+            <GameContainer>
+                {nextRoundCandidates.map((element, i) => {
+                    if (i > 1) {//just render index 0 and 1
+                        return;
+                    }
+                    ;
+                    return (
+                        <ImgContainer onClick={() => {
+                            handleClick(element);
+                        }}>
+                            <ImgBox src={element.src}/>
+                            <hr />
+                            {element.name}
+                        </ImgContainer>
+
+                    )
+                })}
+            </GameContainer>
+        </>
     )
 }
 
